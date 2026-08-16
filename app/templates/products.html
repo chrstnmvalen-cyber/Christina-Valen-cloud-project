@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Products Page</title>
+    <hr>
+</head>
+<body>
+
+<h1>Products</h1>
+
+<div id="container"></div>
+
+<script>
+    fetch('/api/products').then(response => response.json()).then(products => {
+            let productContent = "";
+                products.forEach(product => {
+                    productContent += `
+                        <div class="product_entry">
+                            <img src="/static/images/${product.image_url}" width="100" height="100">
+                            <h2>${product.name}</h2>
+                            <p>ID: ${product.id} <br> ${product.description}</p>
+                            <p>Price: $${product.price}&nbsp;Stock: ${product.stock}</p>
+                        </div>`;
+            });
+
+                document.getElementById("container").innerHTML = productContent;
+            })
+            .catch(error => {
+
+                console.error("Error loading products:", error);
+
+                document.getElementById("container").innerHTML =
+                    "<p>Unable to load products.</p>";
+            });
+</script>
+
+</body>
+</html>
