@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Cart Contents</title>
+</head>
+<body>
+
+<div style="position:fixed;right:10px">
+    <div id="products_page">
+        <a href="/products_display" style="margin:5px;">Products Page</a>
+    </div>
+</div>
+
+<br><br>
+<h1>Shopping Cart</h1>
+
+<div id="shopping_cart"></div>
+<div id="total_price"></div>
+
+<script>
+     document.addEventListener('DOMContentLoaded', function() {
+         fetch('/api/cart').then(response => response.json()).then(orders => {
+            let cartContent = "";
+               orders.info.forEach(entry => {
+                  cartContent += `
+                      <div class="cart_entry">
+                         <h2>${entry.product_name}</h2>
+                         <p>Price: $${entry.price}&nbsp;Quantity: ${entry.quantity}</p>
+                      </div>`;
+               });
+               document.getElementById("shopping_cart").innerHTML = cartContent;
+               document.getElementById("total_price").innerHTML = `<p>Total: $${orders.order_total.toFixed(2)}</p>`
+           })
+           .catch(error => {
+
+               console.error("Error loading products:", error);
+
+                  document.getElementById("shopping_cart").innerHTML =
+                      "<p>Unable to load products.</p>";
+           }); 
+    });
+</script>
+
+</body>
+</html>
