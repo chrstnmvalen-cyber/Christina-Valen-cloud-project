@@ -31,3 +31,19 @@ class Product(db.Model):
     image_url = db.Column(db.String(200))
 
     created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
+
+class Order(db.Model):
+
+    __tablename__ = 'orders'
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    user_id = db.Column(db.Integer, nullable=False)
+
+    product_name = db.Column(db.String(200), nullable=False)
+   
+    price = db.Column(db.Float, nullable=False)
+ 
+    quantity = db.Column(db.Integer, nullable=False)
+
+    total = db.Column(db.Float, nullable=False)

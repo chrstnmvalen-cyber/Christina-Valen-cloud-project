@@ -16,8 +16,10 @@ def create_app():
    login_manager.init_app(app)
    from .routes.auth import auth
    from .routes.products import products
+   from .routes.cart import cart
    app.register_blueprint(auth)
    app.register_blueprint(products)
+   app.register_blueprint(cart)
    with app.app_context():
       db.create_all()
    return app
