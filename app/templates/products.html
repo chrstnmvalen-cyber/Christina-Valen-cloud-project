@@ -2,36 +2,96 @@
 <html>
 <head>
     <title>Products Page</title>
-    <hr>
 </head>
 <body>
 
+<div style="position:fixed;right:10px">
+      <form id="user_input" style="display:flex">
+           <label style="margin:5px;">Email:</label>
+           <input type="email" id="email">
+           <label style="margin:5px;">Password:</label>
+           <input type="password" id="password">
+      </form>
+    <div id="auth_info">
+        <button type="button" id="register" style="margin:5px;">Register</button>
+        <button type="button" id="login" style="margin:5px;">Login</button>
+        <div id="auth_message" style="margin:5px;"></div>
+    </div>
+    <div id="shopping_cart">
+        <a href="/shopping_cart" style="margin:5px;">Shopping Cart</a>
+        <div id="cart_message" style="margin:5px;"></div>
+    </div>
+</div>
+
+<br><br>
 <h1>Products</h1>
 
-<div id="container"></div>
+<div id="product_container"></div>
 
 <script>
-    fetch('/api/products').then(response => response.json()).then(products => {
+     document.addEventListener('DOMContentLoaded', function() {
+         fetch('/api/products').then(response => response.json()).then(products => {
             let productContent = "";
-                products.forEach(product => {
-                    productContent += `
-                        <div class="product_entry">
-                            <img src="/static/images/${product.image_url}" width="100" height="100">
-                            <h2>${product.name}</h2>
-                            <p>ID: ${product.id} <br> ${product.description}</p>
-                            <p>Price: $${product.price}&nbsp;Stock: ${product.stock}</p>
-                        </div>`;
-            });
+               products.forEach(product => {
+                  productContent += `
+                      <div id="product_entry">
+                         <img src="/static/images/${product.image_url}" width="100" height="100">
+                         <h2>${product.name}</h2>
+                         <button type="button" class="add-to-cart-button" data-id="${product.id}">Add to cart</button>
+                         <p>ID: ${product.id} <br> ${product.description}</p>
+                         <p>Price: $${product.price}; Stock: ${product.stock}</p>
+                      </div>`;
+               });
+                  document.getElementById("product_container").innerHTML = productContent;
+           })
+           .catch(error => {
 
-                document.getElementById("container").innerHTML = productContent;
-            })
-            .catch(error => {
+               console.error("Error loading products:", error);
 
-                console.error("Error loading products:", error);
+                  document.getElementById("product_container").innerHTML =
+                      "<p>Unable to load products.</p>";
+           });
+   
+         document.getElementById('product_container').addEventListener('click',function(e){
+           const productID = e.target.dataset.id
+           if (e.target.classList.contains('add-to-cart-button'))
+           {
+              fetch('/orders',{
+                 method: 'POST',
+                 headers:{'Content-Type':'application/json'},
+                 body: JSON.stringify({product_id:productID,quantity: 1})
+              });
+           document.getElementById("cart_message").innerHTML ='<p>Added to Cart.</p>'
+           }
+        });
+        document.getElementById('register').addEventListener('click',function(){
+           const user_info ={
+              email: document.getElementById("email").value,
+              password: document.getElementById("password").value
+           };
 
-                document.getElementById("container").innerHTML =
-                    "<p>Unable to load products.</p>";
-            });
+           fetch('/register',{
+              method: 'POST',
+              headers:{'Content-Type':'application/json'},
+              body: JSON.stringify(user_info)
+           })
+           document.getElementById("auth_message").innerHTML ='<p>User Registered.</p>'
+        });
+
+        document.getElementById('login').addEventListener('click',function(){
+          const user_info ={
+             email: document.getElementById("email").value,
+             password: document.getElementById("password").value
+        };
+        
+        fetch('/login',{
+           method: 'POST',
+           headers:{'Content-Type':'application/json'},
+           body: JSON.stringify(user_info)
+        })
+         document.getElementById("auth_message").innerHTML ='<p>User Login Successful.</p>'
+     });
+    });
 </script>
 
 </body>
