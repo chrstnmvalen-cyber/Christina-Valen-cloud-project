@@ -1,8 +1,8 @@
 from flask import Blueprint, request, jsonify, render_template
 
-from flask_login import login_required
+from flask_login import login_required, current_user
 
-from app.models import db, Product
+from app.models import db, Product, Order
 
 products = Blueprint('products', __name__)
 
@@ -64,19 +64,17 @@ def create_product():
 @login_required
 
 def update_product(id):
-
+    
     product = Product.query.get_or_404(id)
 
     data = request.get_json()
-
+   
     
-
     for key, value in data.items():
 
         setattr(product, key, value)
-
     
-
+    
     db.session.commit()
 
     return jsonify({'message': 'Product updated'})
@@ -94,3 +92,42 @@ def delete_product(id):
     db.session.commit()
 
     return jsonify({'message': 'Product deleted'})
+
+@products.route('/orders', methods=['POST'])
+
+@login_required
+
+def new_order():
+    data = request.get_json()
+
+    product_id = data.get('product_id')
+
+    quantity = int(data.get('quantity', 1))
+
+    product = Product.query.get_or_404(product_id)
+
+    total = product.price*quantity
+    
+    order_item = Order(
+        user_id = current_user.id,
+        
+        product_name = product.name,
+                
+        price = product.price,
+                
+        quantity = quantity, 
+                
+        total = total
+    )
+    
+    db.session.add(order_item)
+
+    db.session.add(product)
+
+    db.session.commit()
+
+    return jsonify(
+    {
+        'id': order_item.id,
+        'total': total
+    })
