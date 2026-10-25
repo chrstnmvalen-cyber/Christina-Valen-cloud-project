@@ -2,7 +2,9 @@ from flask import Blueprint, request, jsonify, render_template
 
 from flask_login import login_required, current_user
 
-from app.models import db, Product, Order
+from sqlalchemy import func
+
+from app.models import db, Product, Cart
 
 products = Blueprint('products', __name__)
 
@@ -20,7 +22,7 @@ def get_products():
 
         'description': p.description,
 
-        'price': p.price,
+        'price': f"{p.price:.2f}",
 
         'stock': p.stock,
 
@@ -69,11 +71,41 @@ def update_product(id):
 
     data = request.get_json()
    
-    
-    for key, value in data.items():
+    # check that price and stock are numbers before update
 
-        setattr(product, key, value)
-    
+    for key, value in data.items():
+        
+        if value:
+
+            if 'price' in data:
+
+                price_val = data['price']
+
+                # take out $ if in price
+        
+                if "$" in price_val: 
+                    
+                    price_val = price_val.split("$")[1]
+       
+                try:
+
+                    product.price = round(float(price_val), 2)
+                
+                except:
+
+                    return jsonify({'error': 'Invalid Price'}), 400
+
+            if 'stock' in data:
+
+                try:
+
+                    product.stock = int(data['stock'])
+
+                except:
+
+                    return jsonify({'error': 'Invalid Stock'}), 400
+
+            setattr(product, key, value)
     
     db.session.commit()
 
@@ -93,11 +125,12 @@ def delete_product(id):
 
     return jsonify({'message': 'Product deleted'})
 
-@products.route('/orders', methods=['POST'])
+@products.route('/carts', methods=['POST'])
 
 @login_required
 
-def new_order():
+def new_product_order():
+    
     data = request.get_json()
 
     product_id = data.get('product_id')
@@ -106,9 +139,16 @@ def new_order():
 
     product = Product.query.get_or_404(product_id)
 
-    total = product.price*quantity
+    # sum up amount of item already in user cart  and check that new order won't exceed stock before adding to cart
+
+    cart_product_amount = db.session.query(func.sum(Cart.quantity)).filter_by(user_id = current_user.id, product_name = product.name).scalar() or 0;
+
+    if cart_product_amount + quantity > product.stock:
     
-    order_item = Order(
+        return jsonify({'error':'Items in cart exceed stock; not added'}), 401
+
+    cart_item = Cart(
+
         user_id = current_user.id,
         
         product_name = product.name,
@@ -116,18 +156,17 @@ def new_order():
         price = product.price,
                 
         quantity = quantity, 
-                
-        total = total
     )
     
-    db.session.add(order_item)
+    db.session.add(cart_item)
 
     db.session.add(product)
 
     db.session.commit()
 
-    return jsonify(
-    {
-        'id': order_item.id,
-        'total': total
-    })
+    # user only able to add to cart if signed-in
+
+    if current_user.is_authenticated:
+        return  jsonify({'id': cart_item.id,})
+    else:
+        return jsonify({'error':'Register or Sign-in first'}), 401

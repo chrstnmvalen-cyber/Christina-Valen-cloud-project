@@ -32,9 +32,9 @@ class Product(db.Model):
 
     created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
 
-class Order(db.Model):
+class Cart(db.Model):
 
-    __tablename__ = 'orders'
+    __tablename__ = 'carts'
 
     id = db.Column(db.Integer, primary_key=True)
 
@@ -46,4 +46,14 @@ class Order(db.Model):
  
     quantity = db.Column(db.Integer, nullable=False)
 
+class Order(db.Model):
+
+    __tablename__ = 'orders'
+
+    order_id = db.Column(db.Integer, primary_key=True)
+
+    user_id = db.Column(db.Integer, nullable=False)
+
     total = db.Column(db.Float, nullable=False)
+
+    order_time = db.Column(db.DateTime, default=datetime.datetime.utcnow)

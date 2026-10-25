@@ -1,45 +1,160 @@
 <!DOCTYPE html>
 <html>
+
 <head>
-    <title>Cart Contents</title>
+
+	<title>Cart Contents</title>
+
 </head>
+
 <body>
 
 <div style="position:fixed;right:10px">
-    <div id="products_page">
-        <a href="/products_display" style="margin:5px;">Products Page</a>
-    </div>
+    
+	<div id="products_page">
+    
+	    <a href="/products_display" style="margin:5px;">Products Page</a>
+	    <a href="/orders" id="order_link" style="margin:5px;">Orders</a>
+	</div>
+
 </div>
 
 <br><br>
+
 <h1>Shopping Cart</h1>
 
 <div id="shopping_cart"></div>
+
 <div id="total_price"></div>
 
+<div id="checkout"><button id="checkout-button">Checkout</button></div>
+
+<div id="user-message"></div>
+
 <script>
-     document.addEventListener('DOMContentLoaded', function() {
-         fetch('/api/cart').then(response => response.json()).then(orders => {
-            let cartContent = "";
-               orders.info.forEach(entry => {
-                  cartContent += `
-                      <div class="cart_entry">
-                         <h2>${entry.product_name}</h2>
-                         <p>Price: $${entry.price}&nbsp;Quantity: ${entry.quantity}</p>
-                      </div>`;
-               });
-               document.getElementById("shopping_cart").innerHTML = cartContent;
-               document.getElementById("total_price").innerHTML = `<p>Total: $${orders.order_total.toFixed(2)}</p>`
-           })
-           .catch(error => {
+	document.addEventListener('DOMContentLoaded', function() {
+	
+		let running_total = 0;
 
-               console.error("Error loading products:", error);
+		fetch('/api/cart').then(response => response.json()).then(carts => {
 
-                  document.getElementById("shopping_cart").innerHTML =
-                      "<p>Unable to load products.</p>";
-           }); 
-    });
+		let cartContent = "";
+		
+		carts.info.forEach(entry => {
+
+			let stock_check = entry.stock;
+
+			// Delete items from cart if there isn't stock; redundant with other checks
+
+                	if (entry.stock < 1 ) {
+
+				cartContent += `<div><p>Quantity Exceeds Stock. Deleting Item.</p></div>`;
+				const response = fetch(`/api/cart/${entry.id}`, {method: 'DELETE'});
+                        
+			}
+
+			else{
+				cartContent += `<div class="cart_entry">
+				
+					<h2>${entry.product_name}</h2>
+				
+					<p>Price: $${entry.price}&nbsp;Quantity: ${entry.quantity}</p>
+				
+					<button id="${entry.id}">Remove Item</button>
+			
+				</div>`;
+		
+				running_total += entry.price * entry.quantity;
+			}
+		});
+		
+		document.getElementById("shopping_cart").innerHTML = cartContent;
+		
+		document.getElementById("total_price").innerHTML = `<p> Total: $${running_total.toFixed(2)}</p>`;
+
+			<!--If no associated items in cart, cartContent remains empty. Display message to user--> 
+
+  		if (running_total == 0){
+                        document.getElementById("checkout").innerHTML = '<p>Cart Empty. Go shopping.</p>';
+                }
+
+		carts.info.forEach(entry => {
+                
+			const deleted_element = document.getElementById(entry.id);
+                   
+			if (deleted_element) {
+                       
+				deleted_element.addEventListener('click', async function() {
+                           
+					const response = await fetch(`/api/cart/${entry.id}`, {method: 'DELETE'});
+                           
+					if (response.ok) {
+                               
+						window.location.reload();
+                           
+					} else {
+                               
+						document.getElementById("shopping_cart").innerHTML = "<p>Unable to delete item.</p>";
+                           
+					}
+                       
+				});
+                   
+			}
+               
+		});
+
+		const checkout_element = document.getElementById('checkout-button');
+
+		if (checkout_element){
+
+		   checkout_element.addEventListener('click', async function(){
+
+			try{
+				
+			  const response = await fetch('/checkout',{
+                          
+			  	method: 'POST',
+                          
+			  	headers:{'Content-Type':'application/json'},
+                          
+		       	  });
+	
+		       	  const data = await response.json();
+
+		          if (response.ok){
+
+		       	     	window.location.href = '/orders';
+
+		          }
+
+		          else{
+		         
+			       document.getElementById("user-message").innerHTML=`<p>${data.error || 'Checkout Error'}<p>`
+
+			       setTimeout(function() {window.location.reload();}, 3000);
+
+		          }
+		       }
+
+		      catch (error) {
+
+
+                             document.getElementById("user-message").innerHTML = '<p>Something went wrong...</p>';
+
+                      }
+
+		   })
+		}
+	   })
+           
+		.catch(error => {  
+			document.getElementById("shopping_cart").innerHTML = "<p>Unable to load products.</p>";
+           	}); 
+	});
+
 </script>
 
 </body>
+	
 </html>

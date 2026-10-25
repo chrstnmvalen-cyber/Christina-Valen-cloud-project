@@ -2,7 +2,7 @@ from flask import Blueprint, request, jsonify, render_template
 
 from flask_login import login_required, current_user
 
-from app.models import db, Order
+from app.models import db, Cart, User, Product
 
 cart = Blueprint('cart', __name__)
 
@@ -12,12 +12,15 @@ cart = Blueprint('cart', __name__)
 
 def get_cart():
 
-    cart_summary = Order.query.filter_by(user_id=current_user.id).all()
+    cart = Cart.query.filter_by(user_id=current_user.id).all()
 
-    order_total = round(sum(c.total for c in cart_summary),2)
+    cart_arr = []
 
-    return jsonify({
-       'info':[{
+    for c in cart:
+
+       product = Product.query.filter_by(name=c.product_name).first()
+        
+       cart_arr.append({
 
           'id': c.id,
 
@@ -25,14 +28,13 @@ def get_cart():
 
           'product_name': c.product_name,
 
-          'price': c.price,
+          'price': product.price,
 
           'quantity': c.quantity,
 
-          'total': c.total
+       })
 
-       } for c in cart_summary], 'order_total' : order_total
-})
+    return jsonify({'info': cart_arr})
 
 @cart.route('/shopping_cart',methods=['GET'])
 
@@ -40,4 +42,24 @@ def get_cart():
 
 def render_cart():
 
-  return render_template('shopping_cart.html')
+    return render_template('shopping_cart.html')
+
+@cart.route('/api/cart/<int:id>', methods=['DELETE'])
+
+@login_required
+
+def delete_item(id):
+
+    try:
+        
+        product = Cart.query.get_or_404(id)
+
+        db.session.delete(product)
+    
+        db.session.commit()
+
+        return jsonify({'message': 'item deleted'})
+    
+    except:
+
+        return jsonify({'error': 'item not deleted'})

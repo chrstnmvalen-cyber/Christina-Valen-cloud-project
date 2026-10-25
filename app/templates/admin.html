@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html>
+<head>
+   <title>Admin Access</title>
+</head>
+<body>
+
+<div style="position:fixed;right:10px">
+   <a href="/products_display" style="margin:5px;">Back</a>
+</div>
+
+<br><br>
+<h1>Hey Admin</h1>
+
+<div id="product_container"></div>
+</body>
+</html>
+
+<script>
+
+	// Display form to edit certain parameters of each product
+
+	fetch('/api/products').then(response => response.json()).then(products => {
+            let productContent = "";
+               products.forEach(product => {
+                  productContent += `
+                      <div id="product_entry">
+                         <img src="${product.image_url}" width="100" height="100" style="margin:10px;">
+                         <h2>${product.name}</h2>
+                         <p>ID: ${product.id} <br> ${product.description}</p>
+                         <p>Price: $${product.price}; Stock: ${product.stock}</p>
+
+			 <form id="${product.id}_vars" style="display:flex">
+			        <label for="description" style="margin:5px;">Description:</label>
+			       <input id="description" value="${product.description}">
+           			<label for="price" style="margin:5px;">Price:</label>
+			       <input id="price" type="number" step="0.01" value="${product.price}">
+           			<label for="stock" style="margin:5px;">Stock:</label>
+			       <input id="stock" value="${product.stock}">
+    			</form>
+			<div id="${product.id}_message"></div>
+			<button id="${product.id}" style="margin:10px;">Make Changes</button>
+                      </div>`;
+               });
+                  
+	       document.getElementById('product_container').innerHTML = productContent;
+
+	       products.forEach(entry => {
+
+               		const changed_element = document.getElementById(entry.id);
+
+                        if (changed_element) {
+
+                                changed_element.addEventListener('click', async function() {
+
+                                        const product_info ={
+
+						description: document.getElementById(`${entry.id}_vars`).querySelector('#description').value,
+
+						price: document.getElementById(`${entry.id}_vars`).querySelector('#price').value,
+
+						stock: document.getElementById(`${entry.id}_vars`).querySelector('#stock').value,
+
+                                        };
+
+					try{
+                                        	const response = await fetch(`/products/${entry.id}`, {
+
+                                                	method: 'PUT',
+
+                                                	headers:{'Content-Type':'application/json'},
+
+                                                	body: JSON.stringify(product_info)
+
+                                        	});
+
+                                        	const data = await response.json();
+
+					 	if (response.ok) {
+
+                                                	window.location.reload();
+
+                                        	} else {
+
+							document.getElementById(`${entry.id}_message`).innerHTML = "<p>Unable to make changes.</p>";
+                                        	}
+					}
+
+					catch(error){
+
+                                        	console.error("Product update error:", error);
+						document.getElementById(`${entry.id}_message`).innerHTML =`<p>${error || 'Something went wrong'}</p>`;
+
+                                	}
+				});
+			}
+	       });
+	})
+           	.catch(error => {
+
+               		console.error("Error loading products:", error);
+
+               		document.getElementById('product_container').innerHTML = "<p>Unable to load products.</p>";
+           	});
+
+</script>
