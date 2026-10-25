@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+	<title>Orders</title>
+
+</head>
+
+<body>
+
+<div style="position:fixed;right:10px">
+    
+	<div id="products_page">
+    
+	    <a href="/products_display" style="margin:5px;">Products Page</a>
+
+	</div>
+
+</div>
+
+<br><br>
+
+<div id="display-message"></div>
+
+<script>
+	document.addEventListener('DOMContentLoaded', function() {
+	
+		fetch('/api/orders').then(response => response.json()).then(orders => {
+
+			let orderContent = "";
+		
+			try{
+		
+				orders.forEach(entry => {
+		
+					orderContent += `<div class="order_entry">
+				
+						<h2>Order ${entry.order_id}</h2>
+				
+						<p>Total: $${entry.total}</p>
+
+						<p>Order Time: ${entry.order_time}</p>
+				
+						</div>`;
+		
+				});
+
+			        document.getElementById('display-message').innerHTML = orderContent;
+			}
+		
+			catch(error){
+	
+				console.error("Error loading products:", error);
+
+                        	document.getElementById("display-message").innerHTML = '<p>No orders. Go shopping.</p>';
+                	}
+		});
+	});
+</script>
+
+</body>
+	
+</html>

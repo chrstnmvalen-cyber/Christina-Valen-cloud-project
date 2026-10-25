@@ -1,12 +1,14 @@
 from flask import Blueprint, request, jsonify, render_template
 
-from flask_login import login_required
+from flask_login import login_required, current_user
 
-from app.models import db, Product
+from sqlalchemy import func
+
+from app.models import db, Product, Cart
 
 products = Blueprint('products', __name__)
 
-@products.route('/products', methods=['GET'])
+@products.route('/api/products', methods=['GET'])
 
 def get_products():
 
@@ -20,7 +22,7 @@ def get_products():
 
         'description': p.description,
 
-        'price': p.price,
+        'price': f"{p.price:.2f}",
 
         'stock': p.stock,
 
@@ -30,11 +32,7 @@ def get_products():
 
 @products.route('/products_display',methods=['GET'])
 def render_products():
-  all_products = Product.query.all()
-  return render_template(
-     'products.html',
-     products=all_products
-  )
+  return render_template('products.html')
 
 @products.route('/products', methods=['POST'])
 @login_required
@@ -68,19 +66,47 @@ def create_product():
 @login_required
 
 def update_product(id):
-
+    
     product = Product.query.get_or_404(id)
 
     data = request.get_json()
-
-    
+   
+    # check that price and stock are numbers before update
 
     for key, value in data.items():
+        
+        if value:
 
-        setattr(product, key, value)
+            if 'price' in data:
 
+                price_val = data['price']
+
+                # take out $ if in price
+        
+                if "$" in price_val: 
+                    
+                    price_val = price_val.split("$")[1]
+       
+                try:
+
+                    product.price = round(float(price_val), 2)
+                
+                except:
+
+                    return jsonify({'error': 'Invalid Price'}), 400
+
+            if 'stock' in data:
+
+                try:
+
+                    product.stock = int(data['stock'])
+
+                except:
+
+                    return jsonify({'error': 'Invalid Stock'}), 400
+
+            setattr(product, key, value)
     
-
     db.session.commit()
 
     return jsonify({'message': 'Product updated'})
@@ -98,3 +124,49 @@ def delete_product(id):
     db.session.commit()
 
     return jsonify({'message': 'Product deleted'})
+
+@products.route('/carts', methods=['POST'])
+
+@login_required
+
+def new_product_order():
+    
+    data = request.get_json()
+
+    product_id = data.get('product_id')
+
+    quantity = int(data.get('quantity', 1))
+
+    product = Product.query.get_or_404(product_id)
+
+    # sum up amount of item already in user cart  and check that new order won't exceed stock before adding to cart
+
+    cart_product_amount = db.session.query(func.sum(Cart.quantity)).filter_by(user_id = current_user.id, product_name = product.name).scalar() or 0;
+
+    if cart_product_amount + quantity > product.stock:
+    
+        return jsonify({'error':'Items in cart exceed stock; not added'}), 401
+
+    cart_item = Cart(
+
+        user_id = current_user.id,
+        
+        product_name = product.name,
+                
+        price = product.price,
+                
+        quantity = quantity, 
+    )
+    
+    db.session.add(cart_item)
+
+    db.session.add(product)
+
+    db.session.commit()
+
+    # user only able to add to cart if signed-in
+
+    if current_user.is_authenticated:
+        return  jsonify({'id': cart_item.id,})
+    else:
+        return jsonify({'error':'Register or Sign-in first'}), 401
