@@ -90,6 +90,10 @@ def update_product(id):
                 try:
 
                     product.price = round(float(price_val), 2)
+                    
+                    if product.price < 0:
+
+                        return jsonify({'error': 'Negative Price Not Allowed'}), 401
                 
                 except:
 
@@ -100,6 +104,10 @@ def update_product(id):
                 try:
 
                     product.stock = int(data['stock'])
+
+                    if product.stock < 0:
+
+                        return jsonify({'error': 'Negative Stock Not Allowed'}), 401
 
                 except:
 

@@ -32,8 +32,8 @@ def register():
         password_hash=generate_password_hash(data['password'])
 
     )
-    # check that @ symbol is in email
-    if "@" in user.email:
+    # check that @ symbol is in email and that password isn't null
+    if "@" in user.email and data['password'] and len(user.email) > 3:
 
        db.session.add(user)
 
@@ -43,7 +43,7 @@ def register():
 
     else:
         
-       return jsonify({'error': 'Invalid email'}), 401
+       return jsonify({'error': 'Invalid Registration Attempt'}), 401
 
 @auth.route('/login', methods=['POST'])
 
